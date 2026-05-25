@@ -259,6 +259,8 @@ For multi-instance functionality, a MongoDB database with **replica set support*
 
 **Important Note:** Standard single-node MongoDB instances (like the default `mongo:latest` Docker image) will **not** work for multi-instance mode due to the lack of replica set functionality.
 
+**Prisma Version Note:** This project currently stays on Prisma 6.x because Prisma ORM 7 does not yet support MongoDB. Do not upgrade `prisma` or `@prisma/client` to v7 until MongoDB support is available in Prisma 7.
+
 #### Option 1: MongoDB Atlas (Recommended)
 
 MongoDB Atlas provides free-tier clusters with replica sets enabled by default. This is the easiest and most reliable way to get started.

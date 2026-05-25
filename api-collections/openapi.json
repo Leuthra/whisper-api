@@ -2,29 +2,27 @@ openapi: 3.0.0
 info:
   title: Whisper - WhatsApp API
   description: >-
-    Complete API collection for WhatsApp management and messaging with
-    configurable operational modes. Available modes: single (legacy only), multi
-    (multi-instance only), both (hybrid mode). Built for Baileys v7 with
-    phone-number JID, LID JID, group JID, web QR, webhook JID metadata, and
-    per-instance plugin support.
+    Complete API collection for WhatsApp management and messaging with configurable operational modes. Available modes:
+    single (legacy only), multi (multi-instance only), both (hybrid mode). Built for Baileys v7 with phone-number JID,
+    LID JID, group JID, web QR, webhook JID metadata, and per-instance plugin support.
   version: 1.0.0
 servers:
-  - url: undefined://{{base_url}}
+  - url: http://localhost:3000
+    description: Development server
+  - url: https://your-domain.com
+    description: Production server
 tags:
   - name: 🌐 Global Endpoints
     description: Global endpoints available in all operational modes
   - name: 🔀 Single Instance (Legacy)
-    description: >-
-      Legacy endpoints for single WhatsApp instance operation. Available when
-      WHATSAPP_MODE=single or WHATSAPP_MODE=both
+    description: Legacy endpoints for single WhatsApp instance operation. Available when WHATSAPP_MODE=single or WHATSAPP_MODE=both
   - name: 🔀 Single Instance (Legacy) > System Monitoring
   - name: 🔀 Single Instance (Legacy) > Messaging
   - name: 🏢 Multi-Instance Management
     description: >-
-      Modern multi-instance WhatsApp API endpoints with /instances prefix.
-      Available when WHATSAPP_MODE=multi or WHATSAPP_MODE=both. Supports
-      Baileys v7 JID/LID-aware messaging, web QR output, webhooks, and
-      per-instance plugin configuration.
+      Modern multi-instance WhatsApp API endpoints with /instances prefix. Available when WHATSAPP_MODE=multi or
+      WHATSAPP_MODE=both. Supports Baileys v7 JID/LID-aware messaging, web QR output, webhooks, and per-instance plugin
+      configuration.
   - name: 🏢 Multi-Instance Management > Instance Management
   - name: 🏢 Multi-Instance Management > Instance Monitoring
   - name: 🏢 Multi-Instance Management > Text Messaging
@@ -49,7 +47,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/ping:
     get:
       tags:
@@ -65,7 +77,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/status:
     get:
       tags:
@@ -81,7 +107,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/logs:
     get:
       tags:
@@ -102,7 +142,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/message:
     post:
       tags:
@@ -126,7 +180,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/message/group:
     post:
       tags:
@@ -150,7 +218,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/instances:
     get:
       tags:
@@ -166,7 +248,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
     post:
       tags:
         - 🏢 Multi-Instance Management > Instance Management
@@ -190,7 +286,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/instances/{phone_number}:
     get:
       tags:
@@ -211,7 +321,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
     put:
       tags:
         - 🏢 Multi-Instance Management > Instance Management
@@ -239,7 +363,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
     delete:
       tags:
         - 🏢 Multi-Instance Management > Instance Management
@@ -259,7 +397,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/instances/{phone_number}/restart:
     post:
       tags:
@@ -282,7 +434,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/instances/{phone_number}/qr:
     get:
       tags:
@@ -313,7 +479,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
             text/html: {}
             image/png: {}
   /api/v1/instances/{phone_number}/ping:
@@ -336,7 +516,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/instances/{phone_number}/status:
     get:
       tags:
@@ -357,7 +551,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/instances/{phone_number}/logs:
     get:
       tags:
@@ -398,7 +606,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/instances/{phone_number}/send-message:
     post:
       tags:
@@ -427,7 +649,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/instances/{phone_number}/send-group-message:
     post:
       tags:
@@ -456,18 +692,31 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/instances/{phone_number}/send-media:
     post:
       tags:
         - 🏢 Multi-Instance Management > Media Messaging
       summary: Send Media from Instance (Images, Videos, Documents, Audio)
       description: >-
-        Send various types of media files through a single unified endpoint. 
-        Supports: 📸 Images (JPG, PNG, GIF, WebP), 🎬 Videos (MP4, AVI, MOV), 
-        📄 Documents (PDF, DOC, XLS, PPT, ZIP), 🎵 Audio (MP3, WAV, AAC, OGG). 
-        Change the 'type' field to switch between media types. The example shows 
-        an image, but you can use the same endpoint for all media formats.
+        Send various types of media files through a single unified endpoint.  Supports: 📸 Images (JPG, PNG, GIF, WebP),
+        🎬 Videos (MP4, AVI, MOV),  📄 Documents (PDF, DOC, XLS, PPT, ZIP), 🎵 Audio (MP3, WAV, AAC, OGG).  Change the
+        'type' field to switch between media types. The example shows  an image, but you can use the same endpoint for
+        all media formats.
       requestBody:
         content:
           application/json:
@@ -527,7 +776,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/instances/{phone_number}/webhooks:
     get:
       tags:
@@ -548,7 +811,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
     post:
       tags:
         - 🏢 Multi-Instance Management > Webhook Management
@@ -577,7 +854,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/instances/{phone_number}/webhooks/{webhook_id}:
     get:
       tags:
@@ -603,7 +894,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
     put:
       tags:
         - 🏢 Multi-Instance Management > Webhook Management
@@ -636,7 +941,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
     delete:
       tags:
         - 🏢 Multi-Instance Management > Webhook Management
@@ -661,7 +980,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/instances/{phone_number}/webhooks/{webhook_id}/toggle:
     post:
       tags:
@@ -694,7 +1027,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/instances/{phone_number}/webhooks/history:
     get:
       tags:
@@ -725,7 +1072,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/instances/{phone_number}/webhooks/history/stats:
     get:
       tags:
@@ -746,7 +1107,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/instances/{phone_number}/webhooks/history/failures:
     get:
       tags:
@@ -767,7 +1142,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/instances/{phone_number}/webhooks/{webhook_id}/history:
     get:
       tags:
@@ -793,7 +1182,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/instances/{phone_number}/plugins:
     get:
       tags:
@@ -814,7 +1217,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
     put:
       tags:
         - 🏢 Multi-Instance Management > Plugin Management
@@ -845,7 +1262,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/instances/{phone_number}/plugins/{plugin_name}/enable:
     post:
       tags:
@@ -874,7 +1305,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/instances/{phone_number}/plugins/{plugin_name}/disable:
     post:
       tags:
@@ -903,7 +1348,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/instances/{phone_number}/plugins/sync:
     post:
       tags:
@@ -926,7 +1385,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/webhooks/history:
     get:
       tags:
@@ -952,7 +1425,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/webhooks/history/stats:
     get:
       tags:
@@ -968,7 +1455,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/webhooks/history/failures:
     get:
       tags:
@@ -984,7 +1485,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/webhooks/history/events/message.received:
     get:
       tags:
@@ -1000,7 +1515,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/webhooks/history/statuses/success:
     get:
       tags:
@@ -1016,7 +1545,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/webhooks/history/{history_id}:
     get:
       tags:
@@ -1037,7 +1580,21 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
   /api/v1/webhooks/history/cleanup:
     post:
       tags:
@@ -1060,4 +1617,18 @@ paths:
         '200':
           description: Successful response
           content:
-            application/json: {}
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indicates if the request was successful
+                    example: true
+                  message:
+                    type: string
+                    description: Human-readable message about the result
+                    example: Operation completed successfully
+                  data:
+                    type: object
+                    description: Response data object
