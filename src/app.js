@@ -1,15 +1,17 @@
-const express = require('express');
-const path = require('path');
-const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
-const logger = require('./utils/logger');
-const whatsappService = require('./services/whatsapp.service');
-const instanceManager = require('./services/whatsappInstanceManager.service');
-const modeConfig = require('./config/mode.config');
-const routes = require('./routes');
-
-require('dotenv').config();
+import { fileURLToPath } from 'url';
+import express from 'express';
+import path from 'path';
+import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
+import logger from './utils/logger.js';
+import whatsappService from './services/whatsapp.service.js';
+import instanceManager from './services/whatsappInstanceManager.service.js';
+import modeConfig from './config/mode.config.js';
+import routes from './routes/index.js';
+import 'dotenv/config';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -118,4 +120,4 @@ app.listen(PORT, async () => {
     await initializeServices();
 });
 
-module.exports = app;
+export default app;

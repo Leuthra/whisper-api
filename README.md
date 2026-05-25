@@ -11,7 +11,7 @@
   ![Stars](https://img.shields.io/github/stars/ibnusyawall/whisper-api)
   [![Node.js](https://img.shields.io/badge/Node.js-v20+-green)](https://nodejs.org/en)
   [![Express.js](https://img.shields.io/badge/Express.js-v5.1+-blue)](https://expressjs.com/)
-  [![Baileys](https://img.shields.io/badge/Baileys-v6.7+-purple)](https://github.com/WhiskeySockets/Baileys/)
+  [![Baileys](https://img.shields.io/badge/Baileys-v7.0+-purple)](https://github.com/WhiskeySockets/Baileys/)
   [![License](https://img.shields.io/badge/License-MIT-yellow)](https://github.com/ibnusyawall/whisper-api/blob/main/LICENSE)
   [![CodeFactor](https://www.codefactor.io/repository/github/ibnusyawall/whisper-api/badge)](https://www.codefactor.io/repository/github/ibnusyawall/whisper-api)
 </div>
@@ -27,6 +27,20 @@
 - 🔌 **Plugin Management** - Per-instance plugin configuration and control
 - 📋 **Logging** - Comprehensive logging for all activities
 - 🔧 **Modular Structure** - Clean, maintainable, and scalable code structure
+
+## Baileys v7 Support
+
+Whisper API currently targets `baileys@^7.0.0-rc13` and runs as an ES module project.
+
+Supported v7-related behavior:
+
+- Modern WhatsApp Web socket setup through Baileys v7.
+- QR codes are exposed through HTTP instead of terminal output.
+- Multi-instance QR endpoint supports `format=json`, `format=html`, and `format=image`.
+- Recipient inputs support plain phone numbers, full WhatsApp user JIDs (`628123456789@s.whatsapp.net`), LID JIDs (`123456789@lid`), and group JIDs (`120363...@g.us`) where the endpoint supports them.
+- Message storage and webhook payloads include normalized JID context such as `recipient`, `jidInfo`, `chatJid`, `senderJid`, `participantJid`, and `selfJid`.
+- Group admin plugins compare participants with Baileys user matching helpers so phone-number JIDs and LID JIDs can resolve to the same user.
+- Disconnect cleanup handles already-closed Baileys sockets, including `428 Connection Closed` logout responses.
 
 ## Use Cases
 
@@ -100,7 +114,7 @@ Key endpoint categories:
 ### Single Instance Mode Setup
 1. Ensure `WHATSAPP_MODE=single` or `WHATSAPP_MODE=both` in your `.env` file
 2. Start the server: `npm start` or `npm run dev`
-3. Scan the QR code displayed in the terminal using WhatsApp on your phone
+3. Get the QR code from `GET /api/v1/status` and scan it using WhatsApp on your phone
 4. Check connection status: `GET /api/v1/status`
 5. Start sending messages using legacy endpoints
 
@@ -110,7 +124,7 @@ Key endpoint categories:
 3. Set up the database: `npx prisma generate && npx prisma db push`
 4. Start the server: `npm start` or `npm run dev`
 5. Create a WhatsApp instance: `POST /api/v1/instances`
-6. Get the QR code: `GET /api/v1/instances/{phone}/qr`
+6. Get the QR code: `GET /api/v1/instances/{phone}/qr?format=html`
 7. Scan the QR code with WhatsApp on your phone
 8. Check instance status: `GET /api/v1/instances/{phone}/status`
 9. Start sending messages using multi-instance endpoints
@@ -125,8 +139,14 @@ curl -X POST http://localhost:3000/api/v1/instances \
   -H "Content-Type: application/json" \
   -d '{"phone":"628123456789","name":"My Instance"}'
 
-# Get QR code (multi-instance mode)
+# Get QR code as JSON (multi-instance mode)
 curl http://localhost:3000/api/v1/instances/628123456789/qr
+
+# Get QR code as scannable HTML
+curl "http://localhost:3000/api/v1/instances/628123456789/qr?format=html"
+
+# Get QR code as PNG image
+curl "http://localhost:3000/api/v1/instances/628123456789/qr?format=image" --output qr.png
 ```
 
 ## Project Structure
@@ -205,7 +225,11 @@ WHATSAPP_MODE=multi         # Operational mode: single, multi, both
 
 # Logging Configuration
 LOG_LEVEL=info              # Logging level: error, warn, info, debug
-DEBUG=true                  # Enable verbose debug output: true, false
+PRISMA_LOG_LEVELS=warn,error # Prisma log levels. Use query,info,warn,error for verbose DB logs
+
+# Plugin Configuration
+WELCOME_GROUP_DELAY_MS=300000 # Delay before welcome-group sends a welcome message
+ANTI_MENTION_GROUP_JIDS=      # Comma-separated group JIDs for anti-mention plugin
 ```
 
 ### Environment Variable Details
@@ -217,7 +241,9 @@ DEBUG=true                  # Enable verbose debug output: true, false
 | `DATABASE_URL` | MongoDB connection string | - | Yes (for multi-instance) |
 | `WHATSAPP_MODE` | Operational mode | `multi` | No |
 | `LOG_LEVEL` | Logging verbosity | `info` | No |
-| `DEBUG` | Debug mode toggle | `false` | No |
+| `PRISMA_LOG_LEVELS` | Prisma log levels, comma-separated | `warn,error` | No |
+| `WELCOME_GROUP_DELAY_MS` | Welcome plugin delay in milliseconds | `300000` | No |
+| `ANTI_MENTION_GROUP_JIDS` | Groups protected by anti-mention plugin | empty | No |
 
 ### Mode Configuration
 
@@ -266,17 +292,49 @@ You can run a local MongoDB replica set using the provided Docker Compose file. 
 
 This setup provides a complete, isolated environment for running the database with the required replica set configuration.
 
-## Phone Number Format
+## Recipient and JID Format
 
-- Format: `628123456789` (with country code 62 for Indonesia)
-- Numbers starting with `0` will be automatically formatted
-- Example: `08123456789` → `628123456789`
+Whisper API keeps phone-number support while also accepting modern Baileys v7 JIDs.
 
-## Group ID Format
+Supported recipient formats:
 
-- Group IDs typically end with `@g.us`
-- Example: `120363042123456789@g.us`
-- Can be obtained from WhatsApp logs or other tools
+- Phone number: `628123456789`
+- Local Indonesian number: `08123456789` (automatically normalized to `628123456789@s.whatsapp.net`)
+- WhatsApp user JID: `628123456789@s.whatsapp.net`
+- WhatsApp LID JID: `123456789@lid`
+- WhatsApp group JID: `120363042123456789@g.us`
+
+Notes:
+
+- Personal message endpoints accept phone numbers and direct user JIDs, including `@lid`.
+- Group endpoints accept group IDs with or without `@g.us`.
+- Webhook and message responses may include `recipient`, `jidInfo`, `chatJid`, `senderJid`, `participantJid`, and `selfJid` so downstream systems can distinguish phone-number JIDs, LID JIDs, groups, broadcasts, and newsletters.
+
+## Plugin Usage
+
+Plugins are disabled by default per instance and must be enabled through the plugin endpoints.
+
+Common plugins:
+
+- `admin-commands`: group admin commands: `!kick @user`, `!promote @user`, `!demote @user`. The bot must be a group admin, and the sender must also be a group admin.
+- `welcome-group`: sends a delayed welcome message when new members join. Delay is controlled by `WELCOME_GROUP_DELAY_MS`.
+- `anti-mention`: removes users who use group mention spam in configured groups. Configure target groups with `ANTI_MENTION_GROUP_JIDS=group1@g.us,group2@g.us`.
+
+Useful endpoints:
+
+```bash
+# List available plugins for an instance
+curl http://localhost:3000/api/v1/instances/628123456789/plugins
+
+# Enable a plugin
+curl -X POST http://localhost:3000/api/v1/instances/628123456789/plugins/welcome-group/enable
+
+# Disable a plugin
+curl -X POST http://localhost:3000/api/v1/instances/628123456789/plugins/welcome-group/disable
+
+# Reload plugin config from database
+curl -X POST http://localhost:3000/api/v1/instances/628123456789/plugins/sync
+```
 
 ## Logging
 
@@ -380,7 +438,7 @@ const sendMessage = async () => {
 - All API responses follow a consistent format with `success`, `data`, and `message` fields
 
 ### Single Instance Mode
-- QR code appears in terminal on first run or after logout
+- QR code is available through the status API on first run or after logout
 - WhatsApp session is stored in the `auth/` directory
 - Don't delete the `auth/` folder to maintain session
 - Service will automatically reconnect if disconnected
@@ -390,6 +448,7 @@ const sendMessage = async () => {
 - Requires MongoDB database connection for instance management
 - Each instance has its own authentication state stored in the database
 - QR codes are retrieved via API endpoints (`/api/v1/instances/{phone}/qr`)
+- QR endpoint supports `format=json`, `format=html`, and `format=image`
 - Multiple WhatsApp instances can run simultaneously
 - Instance data persists between server restarts
 - Webhooks can be configured per instance for real-time notifications
@@ -411,7 +470,7 @@ const sendMessage = async () => {
 ### 1. QR Code Issues
 
 #### Single Instance Mode
-- QR code not appearing in terminal: Delete the `auth/` folder and restart the application
+- QR code not available: Delete the `auth/` folder and restart the application
 - QR code expired: Restart the server to generate a new QR code
 - Authentication failed: Clear the `auth/` folder and scan a fresh QR code
 
@@ -419,6 +478,7 @@ const sendMessage = async () => {
 - QR code not generated: Check if instance exists with `GET /api/v1/instances/{phone}/status`
 - QR code endpoint returns error: Ensure the instance is in `pending` or `disconnected` state
 - QR code expired: Call `POST /api/v1/instances/{phone}/restart` to generate a new one
+- QR code does not scan in Swagger JSON view: use `?format=html` for a scannable page or `?format=image` for a PNG.
 
 ### 2. Connection and Message Issues
 

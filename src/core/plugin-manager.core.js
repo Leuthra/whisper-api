@@ -1,6 +1,57 @@
-const fs = require('fs');
-const path = require('path');
-const logger = require('../utils/logger');
+import { fileURLToPath } from 'url';
+import { pathToFileURL } from 'url';
+import fs from 'fs';
+import path from 'path';
+import logger from '../utils/logger.js';
+import { areJidsSameUser, jidNormalizedUser } from 'baileys';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+function normalizeMaybeJid(jid) {
+    if (!jid) return null;
+    try {
+        return jidNormalizedUser(jid);
+    } catch {
+        return jid;
+    }
+}
+
+function uniqueJids(jids) {
+    return Array.from(new Set(jids.filter(Boolean).map(normalizeMaybeJid)));
+}
+
+function participantJids(participant) {
+    return uniqueJids([
+        participant?.id,
+        participant?.lid,
+        participant?.phoneNumber
+    ]);
+}
+
+function botJids(sock) {
+    const me = sock.authState?.creds?.me || sock.user || {};
+    return uniqueJids([
+        me.id,
+        me.lid,
+        me.phoneNumber,
+        sock.user?.id,
+        sock.user?.lid,
+        sock.user?.phoneNumber
+    ]);
+}
+
+function hasSameUser(leftCandidates, rightCandidates) {
+    return leftCandidates.some(left => rightCandidates.some(right => areJidsSameUser(left, right)));
+}
+
+const jidUtils = {
+    normalizeMaybeJid,
+    uniqueJids,
+    participantJids,
+    botJids,
+    hasSameUser,
+    areJidsSameUser
+};
 
 class PluginManager {
     constructor(instanceData = null) {
@@ -12,6 +63,32 @@ class PluginManager {
             (typeof instanceData.pluginConfig === 'string' ? 
                 JSON.parse(instanceData.pluginConfig) : instanceData.pluginConfig) 
             : {};
+    }
+
+    normalizeInstancePluginConfig(pluginConfig, { strict = false } = {}) {
+        const normalizedConfig = {};
+
+        for (const [pluginName, enabled] of Object.entries(pluginConfig || {})) {
+            if (!this.plugins.has(pluginName)) {
+                if (strict) {
+                    throw new Error(`Plugin ${pluginName} not found`);
+                }
+                logger.warn(`Ignoring unknown plugin configuration: ${pluginName}`);
+                continue;
+            }
+
+            if (typeof enabled !== 'boolean') {
+                if (strict) {
+                    throw new Error(`Plugin ${pluginName} enabled state must be boolean`);
+                }
+                logger.warn(`Ignoring invalid plugin enabled state for ${pluginName}: ${enabled}`);
+                continue;
+            }
+
+            normalizedConfig[pluginName] = enabled;
+        }
+
+        return normalizedConfig;
     }
 
     async loadPlugins() {
@@ -28,14 +105,12 @@ class PluginManager {
                 const pluginPath = path.join(this.pluginsDir, file);
 
                 try {
-                    // Clear require cache for hot reloading
-                    delete require.cache[require.resolve(pluginPath)];
-
-                    const plugin = require(pluginPath);
+                    const pluginModule = await import(`${pathToFileURL(pluginPath).href}?updated=${Date.now()}`);
+                    const plugin = pluginModule.default;
                     this.plugins.set(pluginName, plugin);
 
                     // Use plugin's config if available, otherwise default to enabled
-                    const defaultConfig = plugin.config || { enabled: true };
+                    const defaultConfig = pluginModule.config || { enabled: true };
                     this.pluginConfigs.set(pluginName, defaultConfig);
 
                     // Check instance-specific configuration
@@ -75,15 +150,17 @@ class PluginManager {
             const isEnabled = instanceEnabled !== undefined ? instanceEnabled : false; // Default to false for new instances
 
             if (isEnabled) {
+                const instanceInfo = this.instanceData ? ` (Instance: ${this.instanceData.phone})` : '';
                 const promise = plugin({
                     props: {
+                        ...defaultConfig,
                         enabled: isEnabled,
                         sock,
                         message,
-                        ...defaultConfig
+                        instanceData: this.instanceData,
+                        jidUtils
                     }
                 }).catch(error => {
-                    const instanceInfo = this.instanceData ? ` (Instance: ${this.instanceData.phone})` : '';
                     logger.error(`Plugin ${pluginName} error${instanceInfo}: ${error.message}`);
                 });
 
@@ -176,7 +253,8 @@ class PluginManager {
      * @returns {Object} Updated plugin configuration
      */
     setInstancePluginConfig(pluginConfig) {
-        this.instancePluginConfig = { ...this.instancePluginConfig, ...pluginConfig };
+        const normalizedConfig = this.normalizeInstancePluginConfig(pluginConfig, { strict: true });
+        this.instancePluginConfig = { ...this.instancePluginConfig, ...normalizedConfig };
         const instanceInfo = this.instanceData ? ` for instance ${this.instanceData.phone}` : '';
         logger.info(`🔄 Plugin configuration updated${instanceInfo}`);
         return this.instancePluginConfig;
@@ -207,8 +285,9 @@ class PluginManager {
     syncPluginConfigFromDatabase(freshInstanceData) {
         if (freshInstanceData && freshInstanceData.pluginConfig) {
             const oldConfig = { ...this.instancePluginConfig };
-            this.instancePluginConfig = typeof freshInstanceData.pluginConfig === 'string' ? 
+            const freshPluginConfig = typeof freshInstanceData.pluginConfig === 'string' ?
                 JSON.parse(freshInstanceData.pluginConfig) : freshInstanceData.pluginConfig;
+            this.instancePluginConfig = this.normalizeInstancePluginConfig(freshPluginConfig);
             this.instanceData = freshInstanceData;
             
             const instanceInfo = this.instanceData ? ` for instance ${this.instanceData.phone}` : '';
@@ -241,4 +320,4 @@ class PluginManager {
     }
 }
 
-module.exports = PluginManager;
+export default PluginManager;

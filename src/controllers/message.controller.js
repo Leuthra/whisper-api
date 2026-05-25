@@ -1,6 +1,5 @@
-const logger = require('../utils/logger');
-const whatsappService = require('../services/whatsapp.service');
-
+import logger from '../utils/logger.js';
+import whatsappService from '../services/whatsapp.service.js';
 const messageController = {
     sendPersonalMessage: async (req, res) => {
         try {
@@ -46,6 +45,7 @@ const messageController = {
                 success: true,
                 data: {
                     phoneNumber,
+                    recipient: result.recipient,
                     message: message.trim(),
                     status: 'sent',
                     timestamp: new Date().toISOString()
@@ -113,6 +113,7 @@ const messageController = {
                 success: true,
                 data: {
                     groupId,
+                    recipient: result.recipient,
                     message: message.trim(),
                     status: 'sent',
                     timestamp: new Date().toISOString()
@@ -137,4 +138,4 @@ const messageController = {
     }
 };
 
-module.exports = messageController;
+export default messageController;

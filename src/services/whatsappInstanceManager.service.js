@@ -1,22 +1,90 @@
-const {
-    default: makeWASocket,
+import { fileURLToPath } from 'url';
+import qrcode from 'qrcode';
+import logger from '../utils/logger.js';
+import path from 'path';
+import fs from 'fs';
+import packageJson from '../../package.json' with { type: 'json' };
+import PluginManager from '../core/plugin-manager.core.js';
+import instanceService from './instanceService.js';
+import messageService from './messageService.js';
+import webhookService from './webhookService.js';
+import webhookHistoryService from './webhookHistoryService.js';
+import axios from 'axios';
+import instanceLogService from './instanceLogService.js';
+import makeWASocket, {
     DisconnectReason,
     useMultiFileAuthState,
-    fetchLatestBaileysVersion
-} = require('baileys');
-const qrcodeTerminal = require('qrcode-terminal');
-const qrcode = require('qrcode');
-const logger = require('../utils/logger');
-const path = require('path');
-const fs = require('fs');
-const packageJson = require('../../package.json');
-const PluginManager = require('../core/plugin-manager.core');
-const instanceService = require('./instanceService');
-const messageService = require('./messageService');
-const webhookService = require('./webhookService');
-const webhookHistoryService = require('./webhookHistoryService');
-const axios = require('axios');
-const instanceLogService = require('./instanceLogService');
+    fetchLatestBaileysVersion,
+    BufferJSON,
+    getContentType,
+    jidDecode,
+    jidNormalizedUser,
+    isJidBroadcast,
+    isJidGroup,
+    isJidNewsletter,
+    isLidUser
+} from 'baileys';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+function toUserJid(value) {
+    if (!value) throw new Error('Recipient is required');
+    const raw = String(value).trim();
+    if (raw.includes('@')) return jidNormalizedUser(raw);
+
+    let formattedNumber = raw.replace(/[^\d]/g, '');
+    if (!formattedNumber.startsWith('62')) {
+        formattedNumber = formattedNumber.startsWith('0')
+            ? `62${formattedNumber.substring(1)}`
+            : `62${formattedNumber}`;
+    }
+
+    return `${formattedNumber}@s.whatsapp.net`;
+}
+
+function toGroupJid(value) {
+    if (!value) throw new Error('Group ID is required');
+    const raw = String(value).trim();
+    return raw.includes('@') ? raw : `${raw}@g.us`;
+}
+
+function getBareJidUser(jid) {
+    return jid ? String(jid).split('@')[0].split(':')[0] : null;
+}
+
+function describeJid(jid) {
+    if (!jid) return null;
+    const decoded = jidDecode(jid);
+
+    return {
+        jid,
+        user: decoded?.user || getBareJidUser(jid),
+        server: decoded?.server || String(jid).split('@')[1] || null,
+        device: decoded?.device ?? null,
+        isLid: isLidUser(jid),
+        isGroup: isJidGroup(jid),
+        isBroadcast: isJidBroadcast(jid),
+        isNewsletter: isJidNewsletter(jid)
+    };
+}
+
+function getMessageJids(message, sock, instancePhone) {
+    const remoteJid = message?.key?.remoteJid || null;
+    const selfJid = sock?.user?.id ? jidNormalizedUser(sock.user.id) : toUserJid(instancePhone);
+    const participantJid = message?.key?.participant || null;
+    const senderJid = message?.key?.fromMe ? selfJid : (participantJid || remoteJid);
+
+    return {
+        chatJid: remoteJid,
+        senderJid,
+        participantJid,
+        selfJid,
+        chat: describeJid(remoteJid),
+        sender: describeJid(senderJid),
+        participant: describeJid(participantJid),
+        self: describeJid(selfJid)
+    };
+}
 
 class WhatsAppInstance {
     constructor(instanceData) {
@@ -56,7 +124,6 @@ class WhatsAppInstance {
             this.sock = makeWASocket({
                 version,
                 auth: state,
-                printQRInTerminal: false,
                 logger: {
                     level: 'error',
                     trace: () => {},
@@ -131,9 +198,6 @@ class WhatsAppInstance {
             if (qr) {
                 this.qrCode = qr;
                 logger.info(`📱 QR Code generated for ${this.instanceData.phone}. Scan to connect.`);
-                if (process.env.NODE_ENV === 'development') {
-                    qrcodeTerminal.generate(qr, { small: true });
-                }
                 this.connectionStatus = 'qr_ready';
                 await instanceService.updateStatus(this.instanceData.id, 'qr_ready');
                 
@@ -195,10 +259,9 @@ class WhatsAppInstance {
                     } else {
                         logger.info(`🔓 Connection closed for ${this.instanceData.phone}, logged out or max reconnect attempts reached`);
                         
-                        // Use the instance manager to handle logout and cleanup while keeping database records
-                        const instanceManager = require('./whatsappInstanceManager.service');
+                        // Use the singleton manager to handle logout and cleanup while keeping database records
                         try {
-                            await instanceManager.deleteInstance(this.instanceData.phone, true); // keepDatabaseRecord = true
+                            await instanceManager.deleteInstance(this.instanceData.phone, true, { skipLogout: true }); // keepDatabaseRecord = true
                             logger.info(`🗑️ Instance ${this.instanceData.phone} cleaned up, database record preserved`);
                         } catch (cleanupError) {
                             logger.error(`Error during logout cleanup for ${this.instanceData.phone}: ${cleanupError.message}`);
@@ -273,30 +336,6 @@ class WhatsAppInstance {
             logger.warn(`WebSocket error for ${this.instanceData.phone}: ${error.message}`);
         });
         
-        // Override console.error to catch Baileys internal errors
-        const originalConsoleError = console.error;
-        console.error = (...args) => {
-            const errorString = args.join(' ');
-            
-            // Check for MAC errors and other Baileys-related errors
-            if (errorString.includes('Bad MAC') || 
-                errorString.includes('failed to decrypt message') ||
-                errorString.includes('Session error')) {
-                
-                logger.warn(`[Baileys MAC Error Handled] ${errorString}`);
-                // Don't crash the application - just log and continue
-                return;
-            }
-            
-            // Check for stream errors
-            if (errorString.includes('stream errored out')) {
-                logger.warn(`[Baileys Stream Error] ${errorString}`);
-                return;
-            }
-            
-            // Call original console.error for other errors
-            originalConsoleError.apply(console, args);
-        };
     }
 
     async handleGroupUpdate(update) {
@@ -345,6 +384,9 @@ class WhatsAppInstance {
     safeSerialize(obj) {
         try {
             return JSON.parse(JSON.stringify(obj, (key, value) => {
+                const baileysValue = BufferJSON.replacer(key, value);
+                if (baileysValue !== value) return baileysValue;
+
                 // Handle Uint8Array
                 if (value instanceof Uint8Array) {
                     return {
@@ -428,13 +470,15 @@ class WhatsAppInstance {
         try {
             // Safely serialize the raw message to avoid Prisma serialization errors
             const safeRawMessage = this.safeSerialize(message);
+            const jids = getMessageJids(message, this.sock, this.instanceData.phone);
+            const messageType = getContentType(message.message || {}) || 'unknown';
             
             const messageData = {
                 instanceId: this.instanceData.id,
                 direction: 'incoming',
-                from: message.key.remoteJid,
-                to: this.sock.user?.id || this.instanceData.phone,
-                type: Object.keys(message.message || {})[0] || 'unknown',
+                from: jids.senderJid,
+                to: jids.selfJid,
+                type: messageType,
                 message: {
                     content: message.message?.conversation || 
                              message.message?.extendedTextMessage?.text ||
@@ -443,6 +487,16 @@ class WhatsAppInstance {
                     pushName: message.pushName,
                     messageId: message.key.id,
                     timestamp: this.extractTimestamp(message.messageTimestamp),
+                    chatJid: jids.chatJid,
+                    senderJid: jids.senderJid,
+                    participantJid: jids.participantJid,
+                    selfJid: jids.selfJid,
+                    jidInfo: {
+                        chat: jids.chat,
+                        sender: jids.sender,
+                        participant: jids.participant,
+                        self: jids.self
+                    },
                     raw: safeRawMessage
                 },
                 status: 'received',
@@ -555,17 +609,9 @@ class WhatsAppInstance {
                 throw new Error(`WhatsApp instance ${this.instanceData.phone} not connected`);
             }
 
-            // Format phone number
-            let formattedNumber = phoneNumber.replace(/[^\d]/g, '');
-            if (!formattedNumber.startsWith('62')) {
-                if (formattedNumber.startsWith('0')) {
-                    formattedNumber = '62' + formattedNumber.substring(1);
-                } else {
-                    formattedNumber = '62' + formattedNumber;
-                }
-            }
-
-            const jid = `${formattedNumber}@s.whatsapp.net`;
+            const jid = toUserJid(phoneNumber);
+            const selfJid = this.sock.user?.id ? jidNormalizedUser(this.sock.user.id) : toUserJid(this.instanceData.phone);
+            const recipientInfo = describeJid(jid);
 
             logger.info(`📤 Sending message from ${this.instanceData.phone} to ${jid}: ${messageText}`);
 
@@ -578,12 +624,20 @@ class WhatsAppInstance {
             const messageData = {
                 instanceId: this.instanceData.id,
                 direction: 'outgoing',
-                from: this.instanceData.phone,
-                to: formattedNumber,
+                from: selfJid,
+                to: jid,
                 type: 'text',
                 message: {
                     content: messageText,
-                    messageId: result.key.id
+                    messageId: result.key.id,
+                    chatJid: jid,
+                    senderJid: selfJid,
+                    recipientJid: jid,
+                    jidInfo: {
+                        chat: recipientInfo,
+                        sender: describeJid(selfJid),
+                        recipient: recipientInfo
+                    }
                 },
                 status: 'sent',
                 sentAt: new Date()
@@ -595,7 +649,8 @@ class WhatsAppInstance {
             await this.triggerWebhooks('message.sent', { 
                 message: storedMessage, 
                 instance: this.instanceData,
-                recipient: formattedNumber
+                recipient: jid,
+                jidInfo: recipientInfo
             });
 
             logger.info(`✅ Message sent successfully from ${this.instanceData.phone} to ${phoneNumber}`);
@@ -606,7 +661,7 @@ class WhatsAppInstance {
                 message: `Message sent: ${messageText}`
             });
             
-            return { success: true, message: 'Message sent successfully', messageId: result.key.id };
+            return { success: true, message: 'Message sent successfully', messageId: result.key.id, recipient: jid, jidInfo: recipientInfo };
 
         } catch (error) {
             logger.error(`❌ Error sending message from ${this.instanceData.phone}:`, error);
@@ -625,7 +680,9 @@ class WhatsAppInstance {
                 throw new Error(`WhatsApp instance ${this.instanceData.phone} not connected`);
             }
 
-            const jid = groupId.includes('@g.us') ? groupId : `${groupId}@g.us`;
+            const jid = toGroupJid(groupId);
+            const selfJid = this.sock.user?.id ? jidNormalizedUser(this.sock.user.id) : toUserJid(this.instanceData.phone);
+            const groupInfo = describeJid(jid);
 
             logger.info(`📤 Sending group message from ${this.instanceData.phone} to ${jid}: ${messageText}`);
 
@@ -649,13 +706,19 @@ class WhatsAppInstance {
             const messageData = {
                 instanceId: this.instanceData.id,
                 direction: 'outgoing',
-                from: this.instanceData.phone,
-                to: groupId,
+                from: selfJid,
+                to: jid,
                 type: 'text',
                 message: {
                     content: messageText,
                     messageId: result.key.id,
-                    isGroup: true
+                    isGroup: true,
+                    chatJid: jid,
+                    senderJid: selfJid,
+                    jidInfo: {
+                        chat: groupInfo,
+                        sender: describeJid(selfJid)
+                    }
                 },
                 status: 'sent',
                 sentAt: new Date()
@@ -667,8 +730,9 @@ class WhatsAppInstance {
             await this.triggerWebhooks('message.sent', { 
                 message: storedMessage, 
                 instance: this.instanceData,
-                recipient: groupId,
-                isGroup: true
+                recipient: jid,
+                isGroup: true,
+                jidInfo: groupInfo
             });
 
             logger.info(`✅ Group message sent successfully from ${this.instanceData.phone} to ${groupId}`);
@@ -679,7 +743,7 @@ class WhatsAppInstance {
                 message: `Group message sent to ${groupId}: ${messageText}`
             });
             
-            return { success: true, message: 'Group message sent successfully', messageId: result.key.id };
+            return { success: true, message: 'Group message sent successfully', messageId: result.key.id, recipient: jid, jidInfo: groupInfo };
 
         } catch (error) {
             logger.error(`❌ Error sending group message from ${this.instanceData.phone}:`, error);
@@ -698,17 +762,9 @@ class WhatsAppInstance {
                 throw new Error(`WhatsApp instance ${this.instanceData.phone} not connected`);
             }
 
-            // Format phone number
-            let formattedNumber = phoneNumber.replace(/[^\d]/g, '');
-            if (!formattedNumber.startsWith('62')) {
-                if (formattedNumber.startsWith('0')) {
-                    formattedNumber = '62' + formattedNumber.substring(1);
-                } else {
-                    formattedNumber = '62' + formattedNumber;
-                }
-            }
-
-            const jid = `${formattedNumber}@s.whatsapp.net`;
+            const jid = toUserJid(phoneNumber);
+            const selfJid = this.sock.user?.id ? jidNormalizedUser(this.sock.user.id) : toUserJid(this.instanceData.phone);
+            const recipientInfo = describeJid(jid);
             const { type, url, caption, filename } = mediaData;
 
             logger.info(`📤 Sending ${type} media from ${this.instanceData.phone} to ${jid}`);
@@ -752,15 +808,23 @@ class WhatsAppInstance {
             const messageData = {
                 instanceId: this.instanceData.id,
                 direction: 'outgoing',
-                from: this.instanceData.phone,
-                to: formattedNumber,
+                from: selfJid,
+                to: jid,
                 type: type.toLowerCase(),
                 message: {
                     content: caption || `${type} media`,
                     messageId: result.key.id,
+                    chatJid: jid,
+                    senderJid: selfJid,
+                    recipientJid: jid,
                     mediaType: type.toLowerCase(),
                     mediaUrl: url,
-                    filename: filename
+                    filename: filename,
+                    jidInfo: {
+                        chat: recipientInfo,
+                        sender: describeJid(selfJid),
+                        recipient: recipientInfo
+                    }
                 },
                 status: 'sent',
                 sentAt: new Date()
@@ -772,8 +836,9 @@ class WhatsAppInstance {
             await this.triggerWebhooks('message.sent', { 
                 message: storedMessage, 
                 instance: this.instanceData,
-                recipient: formattedNumber,
-                mediaType: type.toLowerCase()
+                recipient: jid,
+                mediaType: type.toLowerCase(),
+                jidInfo: recipientInfo
             });
 
             logger.info(`✅ ${type} media sent successfully from ${this.instanceData.phone} to ${phoneNumber}`);
@@ -784,7 +849,7 @@ class WhatsAppInstance {
                 message: `${type} media sent${caption ? " with caption: " + caption : ''}`
             });
             
-            return { success: true, message: `${type} media sent successfully`, messageId: result.key.id };
+            return { success: true, message: `${type} media sent successfully`, messageId: result.key.id, recipient: jid, jidInfo: recipientInfo };
 
         } catch (error) {
             logger.error(`❌ Error sending media message from ${this.instanceData.phone}:`, error);
@@ -813,14 +878,22 @@ class WhatsAppInstance {
         // Don't update status to inactive for close (only for logout)
     }
 
-    async disconnect() {
-        if (this.sock) {
+    async disconnect(options = {}) {
+        const { skipLogout = false } = options;
+        if (this.sock && !skipLogout) {
             try {
                 await this.sock.logout();
                 logger.info(`🔓 Instance ${this.instanceData.phone} logged out`);
             } catch (error) {
-                logger.error(`Error logging out instance ${this.instanceData.phone}:`, error);
+                const statusCode = error?.output?.statusCode;
+                if (statusCode === 428 || error?.message === 'Connection Closed') {
+                    logger.warn(`Logout skipped for ${this.instanceData.phone}: socket already closed`);
+                } else {
+                    logger.error(`Error logging out instance ${this.instanceData.phone}:`, error);
+                }
             }
+        } else if (skipLogout) {
+            logger.info(`Skipping logout for ${this.instanceData.phone}: socket already closed`);
         }
         
         this.isConnected = false;
@@ -898,11 +971,11 @@ class WhatsAppInstanceManager {
         }
     }
 
-    async deleteInstance(phone, keepDatabaseRecord = false) {
+    async deleteInstance(phone, keepDatabaseRecord = false, options = {}) {
         try {
             const instance = this.instances.get(phone);
             if (instance) {
-                await instance.disconnect();
+                await instance.disconnect(options);
                 this.instances.delete(phone);
             }
 
@@ -1024,4 +1097,4 @@ class WhatsAppInstanceManager {
 // Create singleton instance
 const instanceManager = new WhatsAppInstanceManager();
 
-module.exports = instanceManager;
+export default instanceManager;

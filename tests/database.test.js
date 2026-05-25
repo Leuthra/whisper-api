@@ -1,8 +1,8 @@
-const prisma = require('../src/database/prisma');
-const instanceService = require('../src/services/instanceService');
-const webhookService = require('../src/services/webhookService');
-const messageService = require('../src/services/messageService');
-
+import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } from '@jest/globals';
+import prisma from '../src/database/prisma.js';
+import instanceService from '../src/services/instanceService.js';
+import webhookService from '../src/services/webhookService.js';
+import messageService from '../src/services/messageService.js';
 beforeAll(async () => {
   // Connect to the MongoDB database
   await prisma.$connect();

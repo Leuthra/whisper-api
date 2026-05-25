@@ -1,10 +1,11 @@
+import modeConfig from '../config/mode.config.js';
+import logger from '../utils/logger.js';
 /**
  * Mode Controller
  * Handles mode information endpoints
  */
 
-const modeConfig = require('../config/mode.config');
-const logger = require('../utils/logger');
+
 
 /**
  * Get current mode information
@@ -42,6 +43,6 @@ const getModeInfo = async (req, res) => {
     }
 };
 
-module.exports = {
+export default {
     getModeInfo
 };

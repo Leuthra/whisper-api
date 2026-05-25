@@ -1,5 +1,4 @@
-const fs = require('fs');
-
+import fs from 'fs';
 const templateUtils = {
     parseTemplate: (body) => {
         try {
@@ -26,4 +25,4 @@ const templateUtils = {
     }
 }
 
-module.exports = templateUtils;
+export default templateUtils;

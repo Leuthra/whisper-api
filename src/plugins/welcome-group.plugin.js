@@ -1,21 +1,18 @@
-const logger = require('../utils/logger');
+import logger from '../utils/logger.js';
 
-const config = {
-    enabled: true,
-    description: 'Welcomes new members to WhatsApp groups with a scheduled message after 5 minutes'
+const WELCOME_DELAY_MS = Number(process.env.WELCOME_GROUP_DELAY_MS || 5 * 60 * 1000);
+
+export const config = {
+    enabled: false,
+    description: 'Welcomes new members to WhatsApp groups with a scheduled message'
 };
 
-// Store participants for each group to batch welcome messages
 const groupParticipants = {};
-// Store timeout references for each group to allow cancellation
 const groupTimeouts = {};
-// Store scheduling status for each group
 const groupScheduled = {};
 
-// Function to validate connection state before sending
 function isConnectionReady(sock) {
     try {
-        // For Baileys, check if socket exists and user is authenticated
         return sock && sock.user && sock.user.id;
     } catch (error) {
         logger.warn(`Connection check failed: ${error.message}`);
@@ -23,147 +20,166 @@ function isConnectionReady(sock) {
     }
 }
 
-// Function to clear group data and timeout
-function clearGroupData(groupId) {
-    if (groupTimeouts[groupId]) {
-        clearTimeout(groupTimeouts[groupId]);
-        delete groupTimeouts[groupId];
+function clearGroupData(scheduleKey) {
+    if (groupTimeouts[scheduleKey]) {
+        clearTimeout(groupTimeouts[scheduleKey]);
+        delete groupTimeouts[scheduleKey];
     }
-    if (groupParticipants[groupId]) {
-        delete groupParticipants[groupId];
-    }
-    if (groupScheduled[groupId]) {
-        delete groupScheduled[groupId];
-    }
+    delete groupParticipants[scheduleKey];
+    delete groupScheduled[scheduleKey];
 }
 
-async function scheduleWelcome(groupId, participants, sock) {
-    if (!groupParticipants[groupId]) {
-        groupParticipants[groupId] = [];
+function getParticipantJid(participant, jidUtils) {
+    if (typeof participant === 'string') {
+        return jidUtils.normalizeMaybeJid(participant);
     }
 
-    // Add new participants to the temporary storage
-    groupParticipants[groupId].push(...participants);
+    const candidates = [
+        participant?.id,
+        participant?.jid,
+        participant?.lid,
+        participant?.phoneNumber
+    ].filter(value => typeof value === 'string');
 
-    // Schedule the welcome message if not already scheduled
-    if (!groupScheduled[groupId]) {
-        groupScheduled[groupId] = true;
+    return jidUtils.uniqueJids(candidates)[0] || null;
+}
 
-        // Store timeout reference for potential cancellation
-        groupTimeouts[groupId] = setTimeout(async () => {
+function getParticipantMention(participant) {
+    return participant.id.split('@')[0].split(':')[0];
+}
+
+async function scheduleWelcome(groupId, participants, sock, jidUtils, instancePhone) {
+    const scheduleKey = `${instancePhone || 'global'}:${groupId}`;
+
+    if (!groupParticipants[scheduleKey]) {
+        groupParticipants[scheduleKey] = [];
+    }
+
+    groupParticipants[scheduleKey].push(...participants);
+
+    if (!groupScheduled[scheduleKey]) {
+        groupScheduled[scheduleKey] = true;
+        logger.info(`Scheduled welcome message for ${groupId} in ${Math.round(WELCOME_DELAY_MS / 1000)} seconds (${groupParticipants[scheduleKey].length} participant(s))`);
+
+        groupTimeouts[scheduleKey] = setTimeout(async () => {
             try {
-                // Check if participants still exist (might have been cleared by remove events)
-                if (!groupParticipants[groupId] || groupParticipants[groupId].length === 0) {
-                    logger.info(`🚫 No participants to welcome in ${groupId} - participants may have left`);
-                    clearGroupData(groupId);
+                if (!groupParticipants[scheduleKey] || groupParticipants[scheduleKey].length === 0) {
+                    logger.info(`No participants to welcome in ${groupId}; participants may have left`);
+                    clearGroupData(scheduleKey);
                     return;
                 }
 
-                // Validate connection before attempting to send
                 if (!isConnectionReady(sock)) {
-                    logger.warn(`🚫 Connection not ready for ${groupId} - skipping welcome message`);
-                    clearGroupData(groupId);
+                    logger.warn(`Connection not ready for ${groupId}; skipping welcome message`);
+                    clearGroupData(scheduleKey);
                     return;
                 }
 
-                // Check if we're admin in this group before sending welcome message
                 let groupMetadata;
                 try {
-                    // Add timeout to prevent socket hanging
                     groupMetadata = await Promise.race([
                         sock.groupMetadata(groupId),
-                        new Promise((_, reject) => 
-                            setTimeout(() => reject(new Error('groupMetadata timeout')), 10000)
-                        )
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('groupMetadata timeout')), 10000))
                     ]);
                 } catch (error) {
                     logger.warn(`Failed to get group metadata for ${groupId}: ${error.message}`);
-                    // If we can't get metadata, skip sending welcome message
-                    clearGroupData(groupId);
+                    clearGroupData(scheduleKey);
                     return;
                 }
-                
+
                 const subjectGroup = groupMetadata.subject;
-                const botJid = (sock.user.id).split(':')[0] + '@s.whatsapp.net';
-                const isAdmin = groupMetadata.participants
-                    .find(p => p.id === botJid)?.admin;
+                const botJids = jidUtils.botJids(sock);
+                const adminParticipants = groupMetadata.participants.filter(p => p.admin);
+                const isAdmin = adminParticipants.some(admin => jidUtils.hasSameUser(jidUtils.participantJids(admin), botJids));
 
-                // Skip if bot is not admin OR if it's an announce-only group
-                if (!isAdmin || groupMetadata.announce) { 
-                    let reason = !isAdmin ? 'Bot is not admin' : 'Group is announce-only';
-                    logger.info(`🚫 Skipping welcome message for ${subjectGroup} (${groupId}) - ${reason}`);
-                    clearGroupData(groupId);
+                if (!isAdmin || groupMetadata.announce) {
+                    const reason = !isAdmin ? 'Bot is not admin' : 'Group is announce-only';
+                    logger.info(`Skipping welcome message for ${subjectGroup} (${groupId}) - ${reason}; botJids=${botJids.join(', ')}`);
+                    clearGroupData(scheduleKey);
                     return;
                 }
 
-                const welcomeMessage = formattedWelcomeText(groupParticipants[groupId], subjectGroup);
+                const pendingParticipants = groupParticipants[scheduleKey].filter(participant => typeof participant.id === 'string');
+                if (pendingParticipants.length === 0) {
+                    logger.warn(`No valid participant JIDs to welcome in ${groupId}`);
+                    clearGroupData(scheduleKey);
+                    return;
+                }
+
+                const welcomeMessage = formattedWelcomeText(pendingParticipants, subjectGroup);
 
                 await sock.sendMessage(groupId, {
                     text: welcomeMessage,
-                    mentions: groupParticipants[groupId].map(p => p.id),
+                    mentions: pendingParticipants.map(p => p.id),
                 });
 
-                logger.info(`👋 Welcomed ${groupParticipants[groupId].length} new members to ${groupId}`);
-
-                // Clear participants list and scheduling flag
-                clearGroupData(groupId);
+                logger.info(`Welcomed ${pendingParticipants.length} new member(s) to ${groupId}`);
+                clearGroupData(scheduleKey);
             } catch (error) {
                 logger.error(`Error sending welcome message to ${groupId}: ${error.message}`);
-                // Clear participants list and scheduling flag on error
-                clearGroupData(groupId);
+                clearGroupData(scheduleKey);
             }
-        }, 5 * 60 * 1000); // 5 minute 
+        }, WELCOME_DELAY_MS);
+    } else {
+        logger.info(`Welcome message already scheduled for ${groupId}; pending participants: ${groupParticipants[scheduleKey].length}`);
     }
 }
 
 function formattedWelcomeText(participants, subject) {
-    const mentions = participants.map(p => '@'+p.id.split('@')[0]).join(' ');
-    const messageFormatted = `⚠️ Waspada pendatang baru detected!!
+    const mentions = participants.map(p => `@${getParticipantMention(p)}`).join(' ');
+    return `Waspada pendatang baru detected!!
 ${mentions}
 
-Selamat datang di *${subject}* — Feel free untuk kenalan, share insight, atau sekadar nimbrung obrolan 👋
+Selamat datang di *${subject}* - Feel free untuk kenalan, share insight, atau sekadar nimbrung obrolan.
 
 Please read the group rules and enjoy your stay.
 
-> "Alone we can do so little, together we can do so much." — Helen Keller`;
-    return messageFormatted;
+> "Alone we can do so little, together we can do so much." - Helen Keller`;
 }
 
-const welcomeGroupPlugin = async ({ props: { enabled = config.enabled, sock, message } }) => {
+const welcomeGroupPlugin = async ({ props: { enabled = config.enabled, sock, message, jidUtils, instanceData } }) => {
     if (!enabled) return;
 
     const groupUpdate = message?.message?.groupUpdate;
     if (!groupUpdate || !groupUpdate.participants) return;
 
     const { key } = message;
-    const { remoteJid: groupId } = key; 
+    const { remoteJid: groupId } = key;
 
     if (groupUpdate.action === 'add') {
-        const newParticipants = groupUpdate.participants.map(participant => ({
-            id: participant,
-            joinedAt: new Date(),
-        }));
-        await scheduleWelcome(groupId, newParticipants, sock);
+        const newParticipants = groupUpdate.participants
+            .map(participant => ({
+                id: getParticipantJid(participant, jidUtils),
+                joinedAt: new Date(),
+            }))
+            .filter(participant => participant.id);
+
+        logger.info(`Welcome plugin received ${newParticipants.length} new participant(s) for ${groupId}`);
+        if (newParticipants.length === 0) {
+            logger.warn(`Welcome plugin ignored add update for ${groupId}: no valid participant JIDs`);
+            return;
+        }
+
+        await scheduleWelcome(groupId, newParticipants, sock, jidUtils, instanceData?.phone);
     } else if (groupUpdate.action === 'remove') {
-        // Handle participant removal - remove them from pending welcome list
-        if (groupParticipants[groupId] && groupParticipants[groupId].length > 0) {
-            const removedParticipants = groupUpdate.participants;
-            
-            // Remove the participants who left from the pending welcome list
-            groupParticipants[groupId] = groupParticipants[groupId].filter(
-                participant => !removedParticipants.includes(participant.id)
+        const scheduleKey = `${instanceData?.phone || 'global'}:${groupId}`;
+        if (groupParticipants[scheduleKey] && groupParticipants[scheduleKey].length > 0) {
+            const removedParticipants = groupUpdate.participants
+                .map(participant => getParticipantJid(participant, jidUtils))
+                .filter(Boolean);
+
+            groupParticipants[scheduleKey] = groupParticipants[scheduleKey].filter(
+                participant => !jidUtils.hasSameUser([participant.id], removedParticipants)
             );
-            
-            // If no participants left to welcome, cancel the scheduled message
-            if (groupParticipants[groupId].length === 0) {
-                logger.info(`🚫 All pending participants left ${groupId} - canceling welcome message`);
-                clearGroupData(groupId);
+
+            if (groupParticipants[scheduleKey].length === 0) {
+                logger.info(`All pending participants left ${groupId}; canceling welcome message`);
+                clearGroupData(scheduleKey);
             } else {
-                logger.info(`👥 ${removedParticipants.length} participants left ${groupId} - ${groupParticipants[groupId].length} still pending welcome`);
+                logger.info(`${removedParticipants.length} participant(s) left ${groupId}; ${groupParticipants[scheduleKey].length} still pending welcome`);
             }
         }
     }
 };
 
-module.exports = welcomeGroupPlugin;
-module.exports.config = config;
+export default welcomeGroupPlugin;

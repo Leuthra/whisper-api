@@ -1,7 +1,6 @@
-const webhookHistoryService = require('../services/webhookHistoryService');
-const instanceService = require('../services/instanceService');
-const { validationResult } = require('express-validator');
-
+import webhookHistoryService from '../services/webhookHistoryService.js';
+import instanceService from '../services/instanceService.js';
+import { validationResult } from 'express-validator';
 class WebhookHistoryController {
   /**
    * Get webhook history for a specific instance
@@ -479,4 +478,4 @@ class WebhookHistoryController {
   }
 }
 
-module.exports = new WebhookHistoryController();
+export default new WebhookHistoryController();

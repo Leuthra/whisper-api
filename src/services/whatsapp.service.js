@@ -1,15 +1,39 @@
-const {
-    default: makeWASocket,
+import { fileURLToPath } from 'url';
+import logger from '../utils/logger.js';
+import path from 'path';
+import fs from 'fs';
+import packageJson from '../../package.json' with { type: 'json' };
+import PluginManager from '../core/plugin-manager.core.js';
+import makeWASocket, {
     DisconnectReason,
     useMultiFileAuthState,
-    fetchLatestBaileysVersion
-} = require('baileys');
-const qrcode = require('qrcode-terminal');
-const logger = require('../utils/logger');
-const path = require('path');
-const packageJson = require('../../package.json');
-const PluginManager = require('../core/plugin-manager.core');
-require('dotenv').config();
+    fetchLatestBaileysVersion,
+    jidNormalizedUser
+} from 'baileys';
+import 'dotenv/config';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+function toUserJid(value) {
+    if (!value) throw new Error('Recipient is required');
+    const raw = String(value).trim();
+    if (raw.includes('@')) return jidNormalizedUser(raw);
+
+    let formattedNumber = raw.replace(/[^\d]/g, '');
+    if (!formattedNumber.startsWith('62')) {
+        formattedNumber = formattedNumber.startsWith('0')
+            ? `62${formattedNumber.substring(1)}`
+            : `62${formattedNumber}`;
+    }
+
+    return `${formattedNumber}@s.whatsapp.net`;
+}
+
+function toGroupJid(value) {
+    if (!value) throw new Error('Group ID is required');
+    const raw = String(value).trim();
+    return raw.includes('@') ? raw : `${raw}@g.us`;
+}
 
 class WhatsAppService {
     constructor() {
@@ -27,7 +51,6 @@ class WhatsAppService {
             logger.info('🔄 Initializing WhatsApp service...');
 
             // Create auth directory if it doesn't exist
-            const fs = require('fs');
             if (!fs.existsSync(this.authDir)) {
                 fs.mkdirSync(this.authDir, { recursive: true });
             }
@@ -43,8 +66,7 @@ class WhatsAppService {
             this.sock = makeWASocket({
                 version,
                 auth: state,
-                printQRInTerminal: false,
-                logger: logger,
+                logger: logger.child({ class: 'baileys', mode: 'single' }),
                 cachedGroupMetadata: async (jid) => {
                     // Check if metadata exists in the cache 
                     if (this.groupMetadataCache.has(jid)) {
@@ -78,7 +100,6 @@ class WhatsAppService {
             if (qr) {
                 this.qrCode = qr;
                 logger.info('📱 QR Code generated. Scan to connect.');
-                qrcode.generate(qr, { small: true });
                 this.connectionStatus = 'qr_ready';
             }
 
@@ -157,17 +178,7 @@ class WhatsAppService {
                 throw new Error('WhatsApp not connected');
             }
 
-            // Format phone number (ensure it has country code)
-            let formattedNumber = phoneNumber.replace(/[^\d]/g, '');
-            if (!formattedNumber.startsWith('62')) {
-                if (formattedNumber.startsWith('0')) {
-                    formattedNumber = '62' + formattedNumber.substring(1);
-                } else {
-                    formattedNumber = '62' + formattedNumber;
-                }
-            }
-
-            const jid = `${formattedNumber}@s.whatsapp.net`;
+            const jid = toUserJid(phoneNumber);
 
             logger.info(`📤 Sending message to ${jid}: ${message}`);
 
@@ -177,7 +188,7 @@ class WhatsAppService {
             await this.sock.sendMessage(jid, { text: message });
 
             logger.info(`✅ Message sent successfully to ${phoneNumber}`);
-            return { success: true, message: 'Message sent successfully' };
+            return { success: true, message: 'Message sent successfully', recipient: jid };
 
         } catch (error) {
             logger.error('❌ Error sending message:', error);
@@ -191,8 +202,7 @@ class WhatsAppService {
                 throw new Error('WhatsApp not connected');
             }
 
-            // Group ID should end with @g.us
-            const jid = groupId.includes('@g.us') ? groupId : `${groupId}@g.us`;
+            const jid = toGroupJid(groupId);
 
             logger.info(`📤 Sending group message to ${jid}: ${message}`);
 
@@ -202,7 +212,7 @@ class WhatsAppService {
             await this.sock.sendMessage(jid, { text: message });
 
             logger.info(`✅ Group message sent successfully to ${groupId}`);
-            return { success: true, message: 'Group message sent successfully' };
+            return { success: true, message: 'Group message sent successfully', recipient: jid };
 
         } catch (error) {
             logger.error('❌ Error sending group message:', error);
@@ -227,4 +237,4 @@ class WhatsAppService {
 // Create singleton instance
 const whatsappService = new WhatsAppService();
 
-module.exports = whatsappService;
+export default whatsappService;

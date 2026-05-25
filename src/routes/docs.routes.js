@@ -1,9 +1,12 @@
-const express = require('express');
-const path = require('path');
-const fs = require('fs');
-const swaggerUi = require('swagger-ui-express');
-const docsController = require('../controllers/docs.controller');
-const openApiSpec = require('../../api-collections/openapi-processed.json');
+import { fileURLToPath } from 'url';
+import express from 'express';
+import path from 'path';
+import fs from 'fs';
+import swaggerUi from 'swagger-ui-express';
+import docsController from '../controllers/docs.controller.js';
+import openApiSpec from '../../api-collections/openapi-processed.json' with { type: 'json' };
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 
@@ -99,4 +102,4 @@ router.get('/try-api/swagger.json', (req, res) => {
 // Serve swagger UI assets
 router.use('/try-api', swaggerUi.serve);
 
-module.exports = router;
+export default router;

@@ -1,7 +1,6 @@
-const webhookService = require('../services/webhookService');
-const instanceService = require('../services/instanceService');
-const logger = require('../utils/logger');
-
+import webhookService from '../services/webhookService.js';
+import instanceService from '../services/instanceService.js';
+import logger from '../utils/logger.js';
 const webhookController = {
     // Create a new webhook
     createWebhook: async (req, res) => {
@@ -243,5 +242,4 @@ const webhookController = {
     }
 };
 
-module.exports = webhookController;
-
+export default webhookController;

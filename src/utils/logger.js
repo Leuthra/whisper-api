@@ -1,5 +1,9 @@
-const winston = require('winston');
-const path = require('path');
+import { fileURLToPath } from 'url';
+import winston from 'winston';
+import path from 'path';
+import fs from 'fs';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Define log levels
 const logLevels = {
@@ -10,7 +14,7 @@ const logLevels = {
 };
 
 // Create logs directory if it doesn't exist
-const fs = require('fs');
+
 const logsDir = path.join(__dirname, '../../logs');
 if (!fs.existsSync(logsDir)) {
     fs.mkdirSync(logsDir, { recursive: true });
@@ -33,7 +37,7 @@ const logger = winston.createLogger({
     transports: [
         // Console transport
         new winston.transports.Console({
-            level: 'debug',
+            level: process.env.LOG_LEVEL || 'info',
             format: winston.format.combine(
                 winston.format.colorize(),
                 winston.format.simple()
@@ -90,6 +94,7 @@ const getAllLogs = (limit = 100) => {
 class LoggerWrapper {
     constructor(winstonLogger) {
         this.logger = winstonLogger;
+        this.level = process.env.LOG_LEVEL || 'info';
     }
 
     info(message, ...args) {
@@ -113,6 +118,10 @@ class LoggerWrapper {
         this.logger.debug(message, ...args);
     }
 
+    fatal(message, ...args) {
+        this.logger.error(message, ...args);
+    }
+
     child(options) {
         // Return a new wrapper with the child logger
         return new LoggerWrapper(this.logger.child(options));
@@ -121,12 +130,14 @@ class LoggerWrapper {
 
 const loggerWrapper = new LoggerWrapper(logger);
 
-module.exports = {
+export default {
     info: loggerWrapper.info.bind(loggerWrapper),
     error: loggerWrapper.error.bind(loggerWrapper),
     warn: loggerWrapper.warn.bind(loggerWrapper),
     debug: loggerWrapper.debug.bind(loggerWrapper),
     trace: loggerWrapper.trace.bind(loggerWrapper),
+    fatal: loggerWrapper.fatal.bind(loggerWrapper),
     child: loggerWrapper.child.bind(loggerWrapper),
+    level: loggerWrapper.level,
     getAllLogs
 };

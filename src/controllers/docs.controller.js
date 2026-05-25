@@ -1,8 +1,7 @@
-const marked = require('marked');
-const logger = require('../utils/logger');
-const template = require('../utils/template');
-const hljs = require('highlight.js');
-
+import { marked } from 'marked';
+import logger from '../utils/logger.js';
+import template from '../utils/template.js';
+import hljs from 'highlight.js';
 // Configure marked with enhanced options
 marked.setOptions({
     highlight: function(code, lang) {
@@ -120,4 +119,4 @@ const docsController = {
     }
 }
 
-module.exports = docsController;
+export default docsController;

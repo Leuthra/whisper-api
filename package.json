@@ -2,6 +2,7 @@
   "name": "whisper-api",
   "version": "2.0.0",
   "description": "WhatsApp REST API using Baileys library",
+  "type": "module",
   "homepage": "https://github.com/ibnusyawall/whisper-api",
   "repository": {
     "url": "git@github.com:ibnusyawall/whisper-api.git"
@@ -10,10 +11,10 @@
   "scripts": {
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "test:db": "jest tests/database.test.js"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
+    "test:db": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/database.test.js"
   },
   "keywords": [
     "whatsapp",
@@ -27,7 +28,7 @@
   "dependencies": {
     "@prisma/client": "^6.12.0",
     "axios": "^1.10.0",
-    "baileys": "^6.7.18",
+    "baileys": "^7.0.0-rc13",
     "cors": "^2.8.5",
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
@@ -40,7 +41,6 @@
     "postman-to-openapi": "^1.7.3",
     "prisma": "^6.12.0",
     "qrcode": "^1.5.4",
-    "qrcode-terminal": "^0.12.0",
     "swagger-ui-express": "^5.0.1",
     "winston": "^3.17.0"
   },

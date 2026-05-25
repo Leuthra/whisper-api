@@ -1,5 +1,5 @@
-const dotenv = require('dotenv');
-
+import { jest } from '@jest/globals';
+import dotenv from 'dotenv';
 // Load environment variables for testing
 dotenv.config();
 

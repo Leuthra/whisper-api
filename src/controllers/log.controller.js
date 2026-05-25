@@ -1,5 +1,4 @@
-const logger = require('../utils/logger');
-
+import logger from '../utils/logger.js';
 const logController = {
     getLogs: async (req, res) => {
         try {
@@ -50,4 +49,4 @@ const logController = {
     }
 };
 
-module.exports = logController;
+export default logController;

@@ -1,7 +1,6 @@
-const logger = require('../utils/logger');
-const whatsappService = require('../services/whatsapp.service');
-const packageJson = require('../../package.json');
-
+import logger from '../utils/logger.js';
+import whatsappService from '../services/whatsapp.service.js';
+import packageJson from '../../package.json' with { type: 'json' };
 const pingController = {
     ping: async (req, res) => {
         const startTime = Date.now();
@@ -41,4 +40,4 @@ const pingController = {
     }
 };
 
-module.exports = pingController;
+export default pingController;

@@ -1,4 +1,19 @@
-const prisma = require('../database/prisma');
+import prisma from '../database/prisma.js';
+
+function contactLookupValues(contact) {
+  if (!contact) return [];
+  const raw = String(contact).trim();
+  const bare = raw.split('@')[0].split(':')[0].replace(/[^\w.-]/g, '');
+  const values = new Set([raw]);
+
+  if (!raw.includes('@') && bare) {
+    if (/^\d+$/.test(bare)) values.add(`${bare}@s.whatsapp.net`);
+    values.add(`${bare}@lid`);
+  }
+
+  if (bare) values.add(bare);
+  return Array.from(values);
+}
 
 class MessageService {
   /**
@@ -200,13 +215,17 @@ class MessageService {
    * @param {Object} options - Query options
    */
   async getConversation(instanceId, contact, options = {}) {
+    const values = contactLookupValues(contact);
+
     return await prisma.message.findMany({
       where: {
         instanceId,
-        OR: [
-          { from: contact },
-          { to: contact },
-        ],
+        OR: values.flatMap(value => [
+          { from: value },
+          { to: value },
+          { from: { contains: value } },
+          { to: { contains: value } },
+        ]),
       },
       take: options.take || 50,
       skip: options.skip || 0,
@@ -238,4 +257,4 @@ class MessageService {
   }
 }
 
-module.exports = new MessageService();
+export default new MessageService();

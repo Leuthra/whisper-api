@@ -4,7 +4,9 @@ info:
   description: >-
     Complete API collection for WhatsApp management and messaging with
     configurable operational modes. Available modes: single (legacy only), multi
-    (multi-instance only), both (hybrid mode).
+    (multi-instance only), both (hybrid mode). Built for Baileys v7 with
+    phone-number JID, LID JID, group JID, web QR, webhook JID metadata, and
+    per-instance plugin support.
   version: 1.0.0
 servers:
   - url: undefined://{{base_url}}
@@ -20,7 +22,9 @@ tags:
   - name: 🏢 Multi-Instance Management
     description: >-
       Modern multi-instance WhatsApp API endpoints with /instances prefix.
-      Available when WHATSAPP_MODE=multi or WHATSAPP_MODE=both
+      Available when WHATSAPP_MODE=multi or WHATSAPP_MODE=both. Supports
+      Baileys v7 JID/LID-aware messaging, web QR output, webhooks, and
+      per-instance plugin configuration.
   - name: 🏢 Multi-Instance Management > Instance Management
   - name: 🏢 Multi-Instance Management > Instance Monitoring
   - name: 🏢 Multi-Instance Management > Text Messaging
@@ -295,11 +299,23 @@ paths:
           schema:
             type: string
           required: true
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum:
+              - json
+              - html
+              - image
+          required: false
+          description: Return the QR as JSON data URL, an HTML preview, or a PNG image.
       responses:
         '200':
           description: Successful response
           content:
             application/json: {}
+            text/html: {}
+            image/png: {}
   /api/v1/instances/{phone_number}/ping:
     get:
       tags:

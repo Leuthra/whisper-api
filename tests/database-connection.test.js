@@ -1,5 +1,5 @@
-const prisma = require('../src/database/prisma');
-
+import { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } from '@jest/globals';
+import prisma from '../src/database/prisma.js';
 describe('Database Connection Tests', () => {
   beforeAll(async () => {
     await prisma.$connect();
@@ -10,12 +10,12 @@ describe('Database Connection Tests', () => {
   });
 
   test('Database connection is working', async () => {
-    // Test basic database connection by pinging
+    // Test basic MongoDB connection by pinging
     try {
-      await prisma.$queryRaw`SELECT 1 as test`;
+      await prisma.$runCommandRaw({ ping: 1 });
       expect(true).toBe(true); // If we get here, connection is working
     } catch (error) {
-      fail(`Database connection failed: ${error.message}`);
+      throw new Error(`Database connection failed: ${error.message}`);
     }
   });
 

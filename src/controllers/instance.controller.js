@@ -1,9 +1,8 @@
-const logger = require('../utils/logger');
-const instanceManager = require('../services/whatsappInstanceManager.service');
-const instanceService = require('../services/instanceService');
-const messageService = require('../services/messageService');
-const instanceLogService = require('../services/instanceLogService');
-
+import logger from '../utils/logger.js';
+import instanceManager from '../services/whatsappInstanceManager.service.js';
+import instanceService from '../services/instanceService.js';
+import messageService from '../services/messageService.js';
+import instanceLogService from '../services/instanceLogService.js';
 const instanceController = {
 // Get logs for a specific instance
     getInstanceLogs: async (req, res) => {
@@ -356,6 +355,38 @@ const instanceController = {
                     message: `QR code not available for instance ${phone}. Status: ${status.connectionStatus}`
                 });
             }
+
+            if (req.query.format === 'image') {
+                const base64Image = status.qrCodeImage.split(',')[1];
+                res.setHeader('Content-Type', 'image/png');
+                res.setHeader('Cache-Control', 'no-store');
+                return res.send(Buffer.from(base64Image, 'base64'));
+            }
+
+            if (req.query.format === 'html') {
+                res.setHeader('Content-Type', 'text/html; charset=utf-8');
+                res.setHeader('Cache-Control', 'no-store');
+                return res.send(`<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WhatsApp QR - ${phone}</title>
+  <style>
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; font-family: Arial, sans-serif; background: #f6f7f9; color: #111827; }
+    main { text-align: center; padding: 24px; }
+    img { width: min(80vw, 420px); height: auto; background: white; padding: 16px; border: 1px solid #d1d5db; }
+    p { margin: 16px 0 0; color: #4b5563; }
+  </style>
+</head>
+<body>
+  <main>
+    <img src="${status.qrCodeImage}" alt="WhatsApp QR code for ${phone}">
+    <p>Status: ${status.connectionStatus}</p>
+  </main>
+</body>
+</html>`);
+            }
             
             res.status(200).json({
                 success: true,
@@ -431,6 +462,8 @@ const instanceController = {
                 data: {
                     instancePhone: phone,
                     to,
+                    recipient: result.recipient,
+                    jidInfo: result.jidInfo,
                     message: message.trim(),
                     messageId: result.messageId,
                     status: 'sent',
@@ -503,6 +536,8 @@ const instanceController = {
                 data: {
                     instancePhone: phone,
                     groupId,
+                    recipient: result.recipient,
+                    jidInfo: result.jidInfo,
                     message: message.trim(),
                     messageId: result.messageId,
                     status: 'sent',
@@ -585,6 +620,8 @@ const instanceController = {
                 data: {
                     instancePhone: phone,
                     to,
+                    recipient: result.recipient,
+                    jidInfo: result.jidInfo,
                     mediaType: media.type,
                     mediaUrl: media.url,
                     caption: media.caption,
@@ -879,4 +916,4 @@ const instanceController = {
     }
 };
 
-module.exports = instanceController;
+export default instanceController;

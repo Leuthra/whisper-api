@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Whisper - WhatsApp API",
-    "description": "Complete API collection for WhatsApp management and messaging with configurable operational modes. Available modes: single (legacy only), multi (multi-instance only), both (hybrid mode).",
+    "description": "Complete API collection for WhatsApp management and messaging with configurable operational modes. Available modes: single (legacy only), multi (multi-instance only), both (hybrid mode). Built for Baileys v7 with phone-number JID, LID JID, group JID, web QR, webhook JID metadata, and per-instance plugin support.",
     "version": "1.0.0"
   },
   "servers": [
@@ -32,7 +32,7 @@
     },
     {
       "name": "🏢 Multi-Instance Management",
-      "description": "Modern multi-instance WhatsApp API endpoints with /instances prefix. Available when WHATSAPP_MODE=multi or WHATSAPP_MODE=both"
+      "description": "Modern multi-instance WhatsApp API endpoints with /instances prefix. Available when WHATSAPP_MODE=multi or WHATSAPP_MODE=both. Supports Baileys v7 JID/LID-aware messaging, web QR output, webhooks, and per-instance plugin configuration."
     },
     {
       "name": "🏢 Multi-Instance Management > Instance Management"
@@ -724,6 +724,20 @@
               "type": "string"
             },
             "required": true
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "json",
+                "html",
+                "image"
+              ]
+            },
+            "required": false,
+            "description": "Return the QR as JSON data URL, an HTML preview, or a PNG image."
           }
         ],
         "responses": {
@@ -750,7 +764,9 @@
                     }
                   }
                 }
-              }
+              },
+              "text/html": {},
+              "image/png": {}
             }
           }
         }
@@ -1090,7 +1106,7 @@
           "🏢 Multi-Instance Management > Media Messaging"
         ],
         "summary": "Send Media from Instance (Images, Videos, Documents, Audio)",
-        "description": "Send various types of media files through a single unified endpoint. Supports: 📸 Images (JPG, PNG, GIF, WebP), 🎬 Videos (MP4, AVI, MOV), 📄 Documents (PDF, DOC, XLS, PPT, ZIP), 🎵 Audio (MP3, WAV, AAC, OGG). Change the 'type' field to switch between media types. The example shows an image, but you can use the same endpoint for all media formats.",
+        "description": "Send various types of media files through a single unified endpoint.  Supports: 📸 Images (JPG, PNG, GIF, WebP), 🎬 Videos (MP4, AVI, MOV),  📄 Documents (PDF, DOC, XLS, PPT, ZIP), 🎵 Audio (MP3, WAV, AAC, OGG).  Change the 'type' field to switch between media types. The example shows  an image, but you can use the same endpoint for all media formats.",
         "requestBody": {
           "content": {
             "application/json": {

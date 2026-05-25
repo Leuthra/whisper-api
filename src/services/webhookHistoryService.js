@@ -1,5 +1,4 @@
-const prisma = require('../database/prisma');
-
+import prisma from '../database/prisma.js';
 class WebhookHistoryService {
   /**
    * Create a new webhook history record
@@ -295,4 +294,4 @@ class WebhookHistoryService {
   }
 }
 
-module.exports = new WebhookHistoryService();
+export default new WebhookHistoryService();

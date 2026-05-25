@@ -4,8 +4,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Lock files 
-package-lock.json 
+# Lock files
+package-lock.json
 yarn.lock
 
 # Environment variables
@@ -111,3 +111,6 @@ Thumbs.db
 *broken.*
 *backup.*
 *old.*
+
+# Local
+Baileys

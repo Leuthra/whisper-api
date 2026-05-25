@@ -1,16 +1,18 @@
 #!/usr/bin/env node
-
-const { spawn } = require('child_process');
-const path = require('path');
-
+import { fileURLToPath } from 'url';
+import path from 'path';
+import { spawn } from 'child_process';
+import prisma from '../src/database/prisma.js';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 async function runDatabaseTests() {
   console.log('🚀 Starting Database Tests...\n');
 
   // Check if MongoDB is running
   console.log('📋 Checking MongoDB connection...');
-  
+
   try {
-    const prisma = require('../src/database/prisma');
+
     await prisma.$connect();
     console.log('✅ MongoDB connection successful\n');
     await prisma.$disconnect();
@@ -36,7 +38,7 @@ function runJestTests(testFile) {
   return new Promise((resolve, reject) => {
     const jestPath = path.join(__dirname, '..', 'node_modules', '.bin', 'jest');
     const testPath = path.join(__dirname, testFile);
-    
+
     const jest = spawn('node', [jestPath, testPath, '--verbose'], {
       stdio: 'inherit',
       cwd: path.join(__dirname, '..')
@@ -60,11 +62,11 @@ function runJestTests(testFile) {
 }
 
 // Run the tests if this script is executed directly
-if (require.main === module) {
+if (process.argv[1] === __filename) {
   runDatabaseTests().catch((error) => {
     console.error('❌ Database tests failed:', error.message);
     process.exit(1);
   });
 }
 
-module.exports = runDatabaseTests;
+export default runDatabaseTests;

@@ -1,5 +1,4 @@
-const prisma = require('../database/prisma');
-
+import prisma from '../database/prisma.js';
 class InstanceService {
   /**
    * Create a new instance
@@ -130,4 +129,4 @@ class InstanceService {
   }
 }
 
-module.exports = new InstanceService();
+export default new InstanceService();

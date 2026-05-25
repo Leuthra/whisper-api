@@ -1,5 +1,4 @@
-const postmanToOpenApi = require('postman-to-openapi');
-
+import postmanToOpenApi from 'postman-to-openapi';
 async function convertPostmanToOpenApi() {
   try {
     const outputFile = 'api-collections/openapi.json';

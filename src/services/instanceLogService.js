@@ -1,5 +1,4 @@
-const prisma = require('../database/prisma');
-
+import prisma from '../database/prisma.js';
 class InstanceLogService {
   /**
    * Create a new instance log entry
@@ -280,4 +279,4 @@ class InstanceLogService {
   }
 }
 
-module.exports = new InstanceLogService();
+export default new InstanceLogService();

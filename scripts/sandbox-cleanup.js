@@ -1,5 +1,12 @@
 #!/usr/bin/env node
-
+import { fileURLToPath } from 'url';
+import path from 'path';
+import fs from 'fs/promises';
+import instanceManager from '../src/services/whatsappInstanceManager.service.js';
+import { PrismaClient } from '../src/generated/prisma/index.js';
+import { createLogger, format, transports } from 'winston';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 /**
  * Sandbox Cleanup Script
  * 
@@ -22,13 +29,6 @@
  * - Manual: node scripts/sandbox-cleanup.js
  * - Cron: Every 10 minutes: /usr/bin/node /path/to/whisper-api/scripts/sandbox-cleanup.js
  */
-
-const { PrismaClient } = require('../src/generated/prisma');
-const fs = require('fs').promises;
-const path = require('path');
-const { createLogger, format, transports } = require('winston');
-const instanceManager = require('../src/services/whatsappInstanceManager.service');
-
 // Initialize Prisma client
 const prisma = new PrismaClient();
 
@@ -362,7 +362,7 @@ async function runCleanup() {
 }
 
 // Run cleanup if called directly
-if (require.main === module) {
+if (process.argv[1] === __filename) {
   runCleanup()
     .then((result) => {
       process.exit(result.success ? 0 : 1);
@@ -373,4 +373,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { runCleanup, cleanupDatabaseRecords, cleanupFileSystem, logoutExpiredInstances };
+export { runCleanup, cleanupDatabaseRecords, cleanupFileSystem, logoutExpiredInstances };

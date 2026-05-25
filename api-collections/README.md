@@ -40,6 +40,24 @@ The API supports three operational modes configured via the `WHATSAPP_MODE` envi
 
 ## 🚀 Quick Start
 
+## Baileys v7 Notes
+
+This API is currently documented for Baileys v7.
+
+- QR codes are not printed to the terminal. Use the API instead.
+- Multi-instance QR endpoint supports `format=json`, `format=html`, and `format=image`.
+- Recipient fields can use phone numbers, full WhatsApp user JIDs (`@s.whatsapp.net`), LID JIDs (`@lid`), or group JIDs (`@g.us`) depending on the endpoint.
+- Message and webhook responses may include `recipient`, `jidInfo`, `chatJid`, `senderJid`, `participantJid`, and `selfJid`.
+- Plugin endpoints control per-instance plugins such as `admin-commands`, `welcome-group`, and `anti-mention`.
+
+Useful QR requests:
+
+```http
+GET http://localhost:3000/api/v1/instances/{{phone_number}}/qr
+GET http://localhost:3000/api/v1/instances/{{phone_number}}/qr?format=html
+GET http://localhost:3000/api/v1/instances/{{phone_number}}/qr?format=image
+```
+
 ### 1. Check Current Mode
 Start by checking which mode is currently active:
 ```http

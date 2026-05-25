@@ -1,6 +1,5 @@
-const fs = require('fs');
-const yaml = require('js-yaml');
-
+import fs from 'fs';
+import yaml from 'js-yaml';
 // Path to the OpenAPI spec file
 const openApiPath = 'api-collections/openapi.json'; // Actually YAML despite the extension
 const jsonOutputPath = 'api-collections/openapi-processed.json';
@@ -32,6 +31,7 @@ try {
         // Add a standard success response schema if not defined
         if (!operation.responses['200'].content?.['application/json']?.schema) {
           operation.responses['200'].content = {
+            ...(operation.responses['200'].content || {}),
             'application/json': {
               schema: {
                 type: 'object',

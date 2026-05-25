@@ -1,5 +1,4 @@
-const prisma = require('../database/prisma');
-
+import prisma from '../database/prisma.js';
 class WebhookService {
   /**
    * Create a new webhook
@@ -153,4 +152,4 @@ class WebhookService {
   }
 }
 
-module.exports = new WebhookService();
+export default new WebhookService();

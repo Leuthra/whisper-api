@@ -1,16 +1,14 @@
-const express = require('express');
-const pingController = require('../controllers/ping.controller');
-const statusController = require('../controllers/status.controller');
-const messageController = require('../controllers/message.controller');
-const logController = require('../controllers/log.controller');
-const instanceController = require('../controllers/instance.controller');
-const modeController = require('../controllers/mode.controller');
-const webhookController = require('../controllers/webhook.controller');
-const webhookHistoryController = require('../controllers/webhookHistoryController');
-
-const modeConfig = require('../config/mode.config');
-const logger = require('../utils/logger');
-
+import express from 'express';
+import pingController from '../controllers/ping.controller.js';
+import statusController from '../controllers/status.controller.js';
+import messageController from '../controllers/message.controller.js';
+import logController from '../controllers/log.controller.js';
+import instanceController from '../controllers/instance.controller.js';
+import modeController from '../controllers/mode.controller.js';
+import webhookController from '../controllers/webhook.controller.js';
+import webhookHistoryController from '../controllers/webhookHistoryController.js';
+import modeConfig from '../config/mode.config.js';
+import logger from '../utils/logger.js';
 const router = express.Router();
 
 // Log active mode
@@ -102,4 +100,4 @@ if (modeConfig.isMultiModeEnabled()) {
     logger.info('⏭️  Multi-instance routes disabled');
 }
 
-module.exports = router;
+export default router;

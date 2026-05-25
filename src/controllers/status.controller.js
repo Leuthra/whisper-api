@@ -1,7 +1,6 @@
-const logger = require('../utils/logger');
-const whatsappService = require('../services/whatsapp.service');
-const packageJson = require('../../package.json');
-
+import logger from '../utils/logger.js';
+import whatsappService from '../services/whatsapp.service.js';
+import packageJson from '../../package.json' with { type: 'json' };
 const statusController = {
     getStatus: async (req, res) => {
         try {
@@ -55,4 +54,4 @@ const statusController = {
     }
 };
 
-module.exports = statusController;
+export default statusController;

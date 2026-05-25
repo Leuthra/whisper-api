@@ -1,9 +1,9 @@
+import logger from '../utils/logger.js';
 /**
  * WhatsApp Mode Configuration
  * Handles different operational modes for the WhatsApp API service
  */
 
-const logger = require('../utils/logger');
 
 // Available modes
 const MODES = {
@@ -64,7 +64,7 @@ const getModeDescription = () => {
     }
 };
 
-module.exports = {
+export default {
     MODES,
     getCurrentMode,
     isSingleModeEnabled,
